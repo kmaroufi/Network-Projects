@@ -27,6 +27,7 @@ void *status;
 pthread_t receiver_thread, sender_thread;
 
 int main(int argc, char **argv) {
+    setbuf(stdout, NULL);
     if (argc <= 1) {
         // server mode
 //        printf("Hello World\n");
