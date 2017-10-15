@@ -179,6 +179,7 @@ void *sender(void *args) {
     int n;
     int sockfd = (int) args;
     char buffer[1000];
+    char the_end[1] = {'\0'};
     while (isConnected) {
 //        printf("Please enter the message: ");
         bzero(buffer, 1000);
@@ -196,6 +197,9 @@ void *sender(void *args) {
         } else {
 //            buffer[strlen(buffer) - 1] = '\0';
             n = write(sockfd, buffer, strlen(buffer));
+            if (buffer[strlen(buffer)-1] == '\0') {
+                n = write(sockfd, the_end, 1);
+            }
         }
 //        printf("n: %d\n", n);
     }
