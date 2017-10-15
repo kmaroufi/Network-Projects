@@ -165,10 +165,10 @@ void *receiver(void *args) {
             isConnected = false;
             break;
         }
-        if (buffer[0] == '\0') {
-//            printf("choooooo\n");
-            break;
-        }
+//        if (buffer[0] == '\0') {
+////            printf("choooooo\n");
+//            break;
+//        }
         printf("%s", buffer);
 //        fflush(stdout);
     }
@@ -188,18 +188,21 @@ void *sender(void *args) {
 //        printf("len: %d - buffer: %s\n", strlen(buffer), buffer);
         if (n == NULL) {
 //            printf("choooooo\n");
-            buffer[0] = '\0';
+//            buffer[0] = '\0';
 //            buffer = htonl(buffer);
-            n = write(sockfd, buffer, 1);
+//            n = write(sockfd, buffer, 1);
+            if (feof(stdin) != 0) {
+//                printf("choooooo\n");
+                pthread_cancel(receiver_thread);
+                close(sockfd);
+                break;
+            }
         } else if (strlen(buffer) == 1) {
 //            buffer = htonl(buffer);
             n = write(sockfd, buffer, strlen(buffer));
         } else {
 //            buffer[strlen(buffer) - 1] = '\0';
             n = write(sockfd, buffer, strlen(buffer));
-            if (buffer[strlen(buffer)-1] == '\0') {
-                n = write(sockfd, the_end, 1);
-            }
         }
 //        printf("n: %d\n", n);
     }
