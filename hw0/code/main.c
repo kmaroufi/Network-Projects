@@ -169,6 +169,7 @@ void *receiver(void *args) {
             break;
         }
         printf("%s", buffer);
+        fflush(stdout);
     }
 //    printf("22222222222222222\n");
 }
