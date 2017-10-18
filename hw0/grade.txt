@@ -1,5 +1,7 @@
+
 HW: hw0
-Date: 1508137672176
+STID: 94105139
+Date: 1508354855556
 --------------------
 Setup git
 	first commit ...................... 2/2
@@ -18,3 +20,4 @@ Client test
 
 
 grade: 34/(30+4)
+comment: Like a Boss 👑
