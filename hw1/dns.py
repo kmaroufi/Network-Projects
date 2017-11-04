@@ -2,9 +2,8 @@ from socket import *
 from lib import *
 from threading import *
 from struct import *
-import ipaddress
 from random import *
-
+import sys
 
 class handler_thread(Thread):
     def __init__(self, data, client_address):
@@ -13,7 +12,7 @@ class handler_thread(Thread):
         self.client_address = client_address
 
     def run(self):
-        print(data, client_address)
+        #print(data, client_address)
 
         # creating new socket
         self.new_socket = socket(AF_INET, SOCK_DGRAM)
@@ -49,16 +48,16 @@ class handler_thread(Thread):
         file.close()
 
     def handle_ip_query(self, file):
-        print("in ip query")
+        #print("in ip query")
         # extracting request str
         labels = self.extract_name(self.data, 12)[0]
         labels.reverse()
-        print(labels)
+        #print(labels)
         labels += ["in-addr", "arpa"]
         self.request_str = self.concat_labels(labels)
         self.is_request_str_found = False
         self.final_site = ""
-        print(self.request_str)
+        #print(self.request_str)
 
         # set root dns
         dns_ip = root_server_ip
@@ -89,11 +88,11 @@ class handler_thread(Thread):
             ancount = self.extract_short(res, 6)[0]
             nscount = self.extract_short(res, 8)[0]
             arcount = self.extract_short(res, 10)[0]
-            # print(qdcount)
-            # print(ancount)
-            # print(nscount)
-            # print(arcount)
-            print(res)
+            # #print(qdcount)
+            # #print(ancount)
+            # #print(nscount)
+            # #print(arcount)
+            #print(res)
             file.write("HEADER\n")
             file.write("===============\n")
             header_str = ""
@@ -151,17 +150,17 @@ class handler_thread(Thread):
                                                                                            additional_str)
             additional_str += "===============\n"
             file.write(additional_str)
-            print("Dooooonz")
+            #print("Dooooonz")
             if self.is_request_str_found:
-                print("success")
+                #print("success")
                 self.send_site_answer_to_client()
                 break
             else:
                 # TODO
-                print(answer_min_ip, authority_min_ip, additional_min_ip)
+                #print(answer_min_ip, authority_min_ip, additional_min_ip)
                 min_ip = self.return_minimum_ip(answer_min_ip, authority_min_ip)
                 min_ip = self.return_minimum_ip(min_ip, additional_min_ip)
-                print(min_ip)
+                #print(min_ip)
                 if min_ip == "255.255.255.255":
                     if answer_min_ns is None:
                         if authority_min_ns is None:
@@ -186,7 +185,7 @@ class handler_thread(Thread):
                     min_ns = answer_min_ns
                     min_ns = min_ns if min_ns < authority_min_ns else authority_min_ns
                     min_ns = min_ns if min_ns < additional_min_ns else additional_min_ns
-                    print("DSFSDSSDFSF " + min_ns)
+                    #print("DSFSDSSDFSF " + min_ns)
                     dns_ip = min_ns
                 else:
                     # dns_ip = self.concat_labels(min_ip.split(".").reverse())
@@ -206,7 +205,7 @@ class handler_thread(Thread):
         self.request_str = self.concat_labels(labels)
         self.is_request_str_found = False
         self.final_ip = ""
-        print(self.request_str)
+        #print(self.request_str)
 
         # set root dns
         dns_ip = root_server_ip
@@ -237,11 +236,11 @@ class handler_thread(Thread):
             ancount = self.extract_short(res, 6)[0]
             nscount = self.extract_short(res, 8)[0]
             arcount = self.extract_short(res, 10)[0]
-            # print(qdcount)
-            # print(ancount)
-            # print(nscount)
-            # print(arcount)
-            print(res)
+            # #print(qdcount)
+            # #print(ancount)
+            # #print(nscount)
+            # #print(arcount)
+            #print(res)
             file.write("HEADER\n")
             file.write("===============\n")
             header_str = ""
@@ -297,19 +296,19 @@ class handler_thread(Thread):
             additional_str, index, additional_min_ip = self.site_sections(res, index, arcount, additional_str)
             additional_str += "===============\n"
             file.write(additional_str)
-            print("Dooooonz")
+            #print("Dooooonz")
             if self.is_request_str_found:
-                print("success")
+                #print("success")
                 self.send_ip_answer_to_client()
                 break
             else:
                 # TODO
-                print(answer_min_ip, authority_min_ip, additional_min_ip)
+                #print(answer_min_ip, authority_min_ip, additional_min_ip)
                 min_ip = self.return_minimum_ip(answer_min_ip, authority_min_ip)
                 min_ip = self.return_minimum_ip(min_ip, additional_min_ip)
-                print(min_ip)
+                #print(min_ip)
                 if min_ip == "255.255.255.255":
-                    print("WAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay")
+                    #print("WAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay")
                     self.send_refused()
                     break
                 else:
@@ -341,24 +340,24 @@ class handler_thread(Thread):
         while i != index:
             del buffer[i]
             i -= 1
-        print(buffer)
+        #print(buffer)
         return buffer
 
     def ip_sections(self, res, index, number, section_str):
         min_ip = "255.255.255.255"
         min_ns = None
         for i in range(number):
-            print("i: " + str(i))
+            #print("i: " + str(i))
             labels, index = self.extract_name(res, index)
             TYPE, index = self.extract_short(res, index)
             CLASS, index = self.extract_short(res, index)
             TTL, index = self.extract_int(res, index)
             RDLENGTH, index = self.extract_short(res, index)
-            print(labels)
-            print(TYPE)
-            print(CLASS)
-            print(TTL)
-            print(RDLENGTH)
+            #print(labels)
+            #print(TYPE)
+            #print(CLASS)
+            #print(TTL)
+            #print(RDLENGTH)
             section_str += "{\n"
             section_str += "class : " + str(CLASS) + "\n"
             section_str += "name : " + self.concat_labels(labels) + "\n"
@@ -371,20 +370,20 @@ class handler_thread(Thread):
                     if j + 1 != 4:
                         IPV4_ADDRESS += "."
                 section_str += "rdata : " + IPV4_ADDRESS + "\n"
-                print(IPV4_ADDRESS)
+                #print(IPV4_ADDRESS)
                 if self.compare_ip(min_ip, IPV4_ADDRESS):
-                    print(min_ip, IPV4_ADDRESS)
+                    #print(min_ip, IPV4_ADDRESS)
                     min_ip = IPV4_ADDRESS
             elif TYPE == 2:  # NS TYPE
                 labels, index = self.extract_name(res, index)
                 section_str += "rdata : " + self.concat_labels(labels) + "\n"
-                print(labels)
+                #print(labels)
                 if (min_ns is None) or min_ns > self.concat_labels(labels):
                     min_ns = self.concat_labels(labels)
             elif TYPE == 5:  # CNAME TYPE
                 labels, index = self.extract_name(res, index)
                 section_str += "rdata : " + self.concat_labels(labels) + "\n"
-                print(labels)
+                #print(labels)
             elif TYPE == 6:  # SOA TYPE
                 PNS_labels, index = self.extract_name(res, index)
                 AMB_labels, index = self.extract_name(res, index)
@@ -403,11 +402,11 @@ class handler_thread(Thread):
                 section_str += "Retry interval : " + str(RETRYi) + "\n"
                 section_str += "Serial Number : " + str(SN) + "\n"
                 section_str += "}\n"
-                print("SOA...")
+                #print("SOA...")
             elif TYPE == 12:  # PTR TYPE
                 ptr_labels, index = self.extract_name(res, index)
                 section_str += "rdata : " + self.concat_labels(ptr_labels) + "\n"
-                print(ptr_labels)
+                #print(ptr_labels)
                 if self.is_equal_to_request_str(self.concat_labels(labels)):
                     if self.is_request_str_found:
                         if self.final_site > self.concat_labels(ptr_labels):
@@ -423,8 +422,8 @@ class handler_thread(Thread):
                 section_str += "Mail Exchanger : " + self.concat_labels(labels) + "\n"
                 section_str += "Preference : " + str(PREF) + "\n"
                 section_str += "}\n"
-                print(PREF)
-                print(labels)
+                #print(PREF)
+                #print(labels)
             elif TYPE == 28:  # AAAA TYPE
                 IPV6_ADDRESS = ""
                 for j in range(8):
@@ -438,12 +437,12 @@ class handler_thread(Thread):
                         IPV6_ADDRESS += ":"
                 # IPV6_ADDRESS = ipaddress.ip_address(IPV6_ADDRESS).exploded
                 section_str += "rdata : " + IPV6_ADDRESS + "\n"
-                print(IPV6_ADDRESS)
+                #print(IPV6_ADDRESS)
             elif TYPE == 16:  # TXT TYPE
                 txt = unpack_from("!" + str(RDLENGTH) + "s", res, index)[0]
                 index += RDLENGTH
                 section_str += "rdata : " + txt.decode() + "\n"
-                print(txt)
+                #print(txt)
             else:
                 section_str += "rdata :\n"
                 index += RDLENGTH
@@ -452,23 +451,23 @@ class handler_thread(Thread):
             section_str += "type : " + (
                 ANSWER_TYPE.get(TYPE) if ANSWER_TYPE.get(TYPE) is not None else str(TYPE)) + "\n"
             section_str += "}\n"
-            print("=============")
+            #print("=============")
         return section_str, index, min_ip, min_ns
 
     def site_sections(self, res, index, number, section_str):
         min_ip = "255.255.255.255"
         for i in range(number):
-            print("i: " + str(i))
+            #print("i: " + str(i))
             labels, index = self.extract_name(res, index)
             TYPE, index = self.extract_short(res, index)
             CLASS, index = self.extract_short(res, index)
             TTL, index = self.extract_int(res, index)
             RDLENGTH, index = self.extract_short(res, index)
-            print(labels)
-            print(TYPE)
-            print(CLASS)
-            print(TTL)
-            print(RDLENGTH)
+            #print(labels)
+            #print(TYPE)
+            #print(CLASS)
+            #print(TTL)
+            #print(RDLENGTH)
             section_str += "{\n"
             section_str += "class : " + str(CLASS) + "\n"
             section_str += "name : " + self.concat_labels(labels) + "\n"
@@ -481,7 +480,7 @@ class handler_thread(Thread):
                     if j + 1 != 4:
                         IPV4_ADDRESS += "."
                 section_str += "rdata : " + IPV4_ADDRESS + "\n"
-                print(IPV4_ADDRESS)
+                #print(IPV4_ADDRESS)
                 if self.is_equal_to_request_str(self.concat_labels(labels)):
                     if self.is_request_str_found:
                         if self.compare_ip(self.final_ip, IPV4_ADDRESS):
@@ -490,16 +489,16 @@ class handler_thread(Thread):
                         self.is_request_str_found = True
                         self.final_ip = IPV4_ADDRESS
                 elif (not self.is_request_str_found) and self.compare_ip(min_ip, IPV4_ADDRESS):
-                    print(min_ip, IPV4_ADDRESS)
+                    #print(min_ip, IPV4_ADDRESS)
                     min_ip = IPV4_ADDRESS
             elif TYPE == 2:  # NS TYPE
                 labels, index = self.extract_name(res, index)
                 section_str += "rdata : " + self.concat_labels(labels) + "\n"
-                print(labels)
+                #print(labels)
             elif TYPE == 5:  # CNAME TYPE
                 labels, index = self.extract_name(res, index)
                 section_str += "rdata : " + self.concat_labels(labels) + "\n"
-                print(labels)
+                #print(labels)
             elif TYPE == 6:  # SOA TYPE
                 PNS_labels, index = self.extract_name(res, index)
                 AMB_labels, index = self.extract_name(res, index)
@@ -518,11 +517,11 @@ class handler_thread(Thread):
                 section_str += "Retry interval : " + str(RETRYi) + "\n"
                 section_str += "Serial Number : " + str(SN) + "\n"
                 section_str += "}\n"
-                print("SOA...")
+                #print("SOA...")
             elif TYPE == 12:  # PTR TYPE
                 labels, index = self.extract_name(res, index)
                 section_str += "rdata : " + self.concat_labels(labels) + "\n"
-                print(labels)
+                #print(labels)
             elif TYPE == 15:  # MX TYPE
                 PREF, index = self.extract_short(res, index)
                 labels, index = self.extract_name(res, index)
@@ -531,8 +530,8 @@ class handler_thread(Thread):
                 section_str += "Mail Exchanger : " + self.concat_labels(labels) + "\n"
                 section_str += "Preference : " + str(PREF) + "\n"
                 section_str += "}\n"
-                print(PREF)
-                print(labels)
+                #print(PREF)
+                #print(labels)
             elif TYPE == 28:  # AAAA TYPE
                 IPV6_ADDRESS = ""
                 for j in range(8):
@@ -546,12 +545,12 @@ class handler_thread(Thread):
                         IPV6_ADDRESS += ":"
                 # IPV6_ADDRESS = ipaddress.ip_address(IPV6_ADDRESS).exploded
                 section_str += "rdata : " + IPV6_ADDRESS + "\n"
-                print(IPV6_ADDRESS)
+                #print(IPV6_ADDRESS)
             elif TYPE == 16:  # TXT TYPE
                 txt = unpack_from("!" + str(RDLENGTH) + "s", res, index)[0]
                 index += RDLENGTH
                 section_str += "rdata : " + txt.decode() + "\n"
-                print(txt)
+                #print(txt)
             else:
                 section_str += "rdata :\n"
                 index += RDLENGTH
@@ -560,7 +559,7 @@ class handler_thread(Thread):
             section_str += "type : " + (
                 ANSWER_TYPE.get(TYPE) if ANSWER_TYPE.get(TYPE) is not None else str(TYPE)) + "\n"
             section_str += "}\n"
-            print("=============")
+            #print("=============")
         return section_str, index, min_ip
 
     def send_site_answer_to_client(self):
@@ -723,7 +722,7 @@ class handler_thread(Thread):
                 labels += pointer_labels
                 return labels, index
             m, index = self.extract_mini_short(res, index)
-            # print("m: " + str(m))
+            # #print("m: " + str(m))
             if m == 0:
                 break
             label = unpack_from("!" + str(m) + "s", res, index)[0]
@@ -750,7 +749,9 @@ class handler_thread(Thread):
         return number, index
 
 
-root_server_ip = input()  # TODO
+# root_server_ip = input()  # TODO
+
+root_server_ip = sys.argv[1]
 
 listen_socket = socket(AF_INET, SOCK_DGRAM)
 listen_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
