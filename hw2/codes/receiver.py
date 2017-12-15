@@ -21,12 +21,15 @@ class ReaderThread(Thread):
         global receiver_port, data, cs
         # get first packet
 
+        print("receiving host " + str(receiver_port) + ": is running...")
+
         sender_port = 0
         expected_seq_num = 0
         while True:
+            #print("-------------------")
             tmp = f_read.read(4)
             packet_size = unpack_from("!I", tmp, 0)[0]
-            print("received packet with size " + str(packet_size))
+            #print("received packet with size " + str(packet_size))
             packet_in_bytes = f_read.read(packet_size)
             received_packet_model = PacketModel()
             is_correct = received_packet_model.from_bytes(packet_in_bytes)
@@ -34,9 +37,9 @@ class ReaderThread(Thread):
                 continue
 
             if cs == ConnectionState.get_data and received_packet_model.FIN == 1:
-                print("last data packet is received")
+                #print("last data packet is received")
                 expected_seq_num += 1
-                print("sending ACK packet")
+                #print("sending ACK packet")
                 sending_packet_model = PacketModel(sender_port=receiver_port, receiver_port=sender_port,
                                                    seq_num=0, ack_num=expected_seq_num, CWR=0, ACK=1,
                                                    SYN=0, FIN=0,
@@ -47,7 +50,7 @@ class ReaderThread(Thread):
                 f_write.write(packet)
                 f_write.flush()
 
-                print("sending FIN packet")
+                #print("sending FIN packet")
                 sending_packet_model = PacketModel(sender_port=receiver_port, receiver_port=sender_port,
                                                    seq_num=0, ack_num=0, CWR=0, ACK=0,
                                                    SYN=0, FIN=1,
@@ -69,7 +72,7 @@ class ReaderThread(Thread):
                     continue
                 if received_packet_model.data is not None:
                     continue
-                print("sending SYN/ACK packet")
+                #print("sending SYN/ACK packet")
                 sender_port = received_packet_model.sender_port
                 expected_seq_num = received_packet_model.seq_num + 1
                 sending_packet_model = PacketModel(sender_port=receiver_port, receiver_port=sender_port,
@@ -85,7 +88,7 @@ class ReaderThread(Thread):
 
             # get ack for SYN/ACK
             if cs == ConnectionState.waiting_SYN_ACK:
-                print("ack for SYN/ACK received")
+                #print("ack for SYN/ACK received")
                 if received_packet_model.ACK == 0:
                     continue
                 if received_packet_model.data is not None:
@@ -102,7 +105,7 @@ class ReaderThread(Thread):
                         expected_seq_num += 1
                     else:
                         break
-                print("sending ACK packet")
+                #print("sending ACK packet")
                 sending_packet_model = PacketModel(sender_port=receiver_port, receiver_port=sender_port,
                                                    seq_num=0, ack_num=expected_seq_num, CWR=0, ACK=1,
                                                    SYN=0, FIN=0,
@@ -113,9 +116,11 @@ class ReaderThread(Thread):
                 f_write.write(packet)
                 f_write.flush()
 
-        f = open("received", "wb")
-        for item in data.values():
-            f.write(item)
+        f = open("receiver", "wb")
+        keys = data.keys()
+        for key in sorted(keys):
+            #print(key)
+            f.write(data.get(key))
 
         f.flush()
         f.close()
@@ -124,20 +129,23 @@ class ReaderThread(Thread):
         f_write.close()
         os.remove(read_file_path)
 
+        print("receiving host " + str(receiver_port) + ": is terminated.")
+
 
 receiver_port = sys.argv[1]
 # receiver_port = 5678
 
-read_file_path = "../pipes/" + "receiver_" + str(receiver_port) + "_data.pipe"
-transmitter_file_path = "../pipes/" + "backwardnet_data.pipe"
+read_file_path = "./pipes/" + "receiver_" + str(receiver_port) + "_data.pipe"
+transmitter_file_path = "./pipes/" + "backwardnet_data.pipe"
 
 os.mkfifo(read_file_path)
 
 f_read = open(read_file_path, 'rb')
-print("passed")
+#print("passed")
 f_write = open(transmitter_file_path, 'wb')
-print("passed")
+#print("passed")
 data = {}
 cs = ConnectionState.waiting_SYN
+
 
 ReaderThread().start()
