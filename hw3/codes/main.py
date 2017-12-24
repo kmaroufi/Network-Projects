@@ -1,5 +1,6 @@
 import dpkt
 from struct import *
+import sys
 
 graph = []
 
@@ -59,8 +60,8 @@ def extract_lsu(buffer):
                 tos_metric = unpack_from("!H", buffer, index)[0]
                 index += 2
 
-
-f_pcap = open("Packets.pcap", 'rb')
+file_path = sys.argv[1]
+f_pcap = open(file_path, 'rb')
 pcap = dpkt.pcap.Reader(f_pcap)
 
 packets = []
