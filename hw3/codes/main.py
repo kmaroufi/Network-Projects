@@ -127,10 +127,17 @@ for key, value in network.items():
             matrix[index_nodes[ip1]][index_nodes[key]] = 1
 
 
+f_write = open("adjacent_matrix", "w")
+out = ""
 for i in range(len(nodes)):
     for j in range(len(nodes)):
-        print(matrix[i][j], end="")
+        # print(matrix[i][j], end="")
+        out += str(matrix[i][j])
         if j + 1 != len(nodes):
-            print(end=",")
-    print("")
+            out += ","
+            # print(end=",")
+    # print("")
+    out += "\n"
 
+f_write.write(out)
+f_write.close()
