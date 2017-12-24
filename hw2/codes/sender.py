@@ -9,6 +9,15 @@ import math
 import time
 
 
+#
+# log = False
+# def #print(x):
+#     global log
+#
+#     if log:
+#         #print(x)
+
+
 class ConnectionState(Enum):
     sending_SYN = 1
     waiting_SYN_ACK = 2
@@ -34,11 +43,12 @@ class ReaderThread(Thread):
         pre_max_seq_num = 0
 
         while True:
-
+            # print("-------------------")
             lock.acquire()
-            print("cwnd" + str(cwnd))
+            # print("cwnd" + str(cwnd))
             if cs == ConnectionState.sending_SYN:
-                print("sending SYN packet")
+                print("sending host " + str(sender_port) + ": is running...")
+                # print("sending SYN packet")
                 sending_packet_model = PacketModel(sender_port=sender_port, receiver_port=receiver_port,
                                                    seq_num=min_seq_num,
                                                    ack_num=0, CWR=0, ACK=0, SYN=1, FIN=0, window_size=cwnd, data=None)
@@ -53,7 +63,7 @@ class ReaderThread(Thread):
 
             tmp = f_read.read(4)
             packet_size = unpack_from("!I", tmp, 0)[0]
-            print("received ACK packet with size " + str(packet_size))
+            # print("received ACK packet with size " + str(packet_size))
             packet_in_bytes = f_read.read(packet_size)
             received_packet_model = PacketModel()
             is_correct = received_packet_model.from_bytes(packet_in_bytes)
@@ -62,7 +72,7 @@ class ReaderThread(Thread):
 
             lock.acquire()
             if first_data_packet_seq_num + len(data) == received_packet_model.ack_num:
-                print("sending FIN")
+                # print("sending FIN")
                 rtt = math.ceil((1 - 0.125) + 0.125 * (timeout - timer))
                 timer = 2 * rtt
                 timeout = 2 * rtt
@@ -81,19 +91,19 @@ class ReaderThread(Thread):
                 continue
 
             if cs == ConnectionState.waiting_FIN_ACK:
-                print("enter in ConnectionState.waiting_FIN_ACK")
+                # print("enter in ConnectionState.waiting_FIN_ACK")
                 if received_packet_model.ack_num != min_seq_num + 1:
-                    print(received_packet_model.ack_num, min_seq_num + 1)
-                    print("ConnectionState.waiting_FIN_ACK problem")
+                    # print(received_packet_model.ack_num, min_seq_num + 1)
+                    # print("ConnectionState.waiting_FIN_ACK problem")
                     continue
                 cs = ConnectionState.waiting_FIN
                 lock.release()
                 continue
 
             if cs == ConnectionState.waiting_FIN:
-                print("enter in ConnectionState.waiting_FIN")
+                # print("enter in ConnectionState.waiting_FIN")
                 if received_packet_model.FIN != 1:
-                    print("ConnectionState.waiting_FIN problem")
+                    # print("ConnectionState.waiting_FIN problem")
                     continue
                 min_seq_num += 1
                 max_seq_num += 1
@@ -109,7 +119,7 @@ class ReaderThread(Thread):
                 break
 
             if cs == ConnectionState.waiting_SYN_ACK:
-                print("sending ack for SYN/ACK packet")
+                # print("sending ack for SYN/ACK packet")
                 if received_packet_model.ack_num != min_seq_num + 1:
                     lock.release()
                     continue
@@ -125,7 +135,7 @@ class ReaderThread(Thread):
                 timer = 2 * rtt
                 timeout = 2 * rtt
 
-                print("sending first data packet")
+                # print("sending first data packet")
                 min_seq_num += 1
                 max_seq_num += 1
                 sending_packet_model = PacketModel(sender_port=sender_port, receiver_port=receiver_port,
@@ -143,9 +153,9 @@ class ReaderThread(Thread):
                 continue
 
             if cs == ConnectionState.slow_start:
-                print("slow start")
+                # print("slow start")
                 if received_packet_model.ack_num >= min_seq_num + 1:
-                    print("received ack")
+                    # print("received ack")
                     dup = 0
                     rtt = math.ceil((1 - 0.125) + 0.125 * (timeout - timer))
                     timer = 2 * rtt
@@ -154,20 +164,25 @@ class ReaderThread(Thread):
                     if max_seq_num >= received_packet_model.ack_num:
                         number_of_acked_packets = received_packet_model.ack_num - min_seq_num
                     else:
-                        number_of_acked_packets = max_seq_num - min_seq_num + 1 # if you are a celever one, this is equal to cwnd :)
+                        number_of_acked_packets = max_seq_num - min_seq_num + 1  # if you are a celever one, this is equal to cwnd :)
                     min_seq_num = received_packet_model.ack_num
                     max_seq_num = max(max_seq_num, received_packet_model.ack_num - 1)
                     increasing_cwnd_value = min(number_of_acked_packets, max_window - cwnd)
+                    # print("cwnd: " + str(cwnd))
+                    # print("number_of_acked_packets: " + str(number_of_acked_packets))
+                    # print("max_window: " + str(max_window))
+                    # print("ssthresh: " + str(ssthresh))
+                    # print("increasing_cwnd_value: " + str(increasing_cwnd_value))
                     if ssthresh != - 1 and cwnd + increasing_cwnd_value >= ssthresh:
                         increasing_cwnd_value = ssthresh - cwnd
                         cs = ConnectionState.congestion_avoidance
                         pre_min_seq_num = min_seq_num
                         pre_max_seq_num = max_seq_num + number_of_acked_packets + increasing_cwnd_value
                     cwnd += increasing_cwnd_value
-                    print(number_of_acked_packets, increasing_cwnd_value)
+                    # print(number_of_acked_packets, increasing_cwnd_value)
                     for i in range(number_of_acked_packets + increasing_cwnd_value):
                         max_seq_num += 1
-                        print("sending " + str(max_seq_num))
+                        # print("sending " + str(max_seq_num))
                         if data.get(max_seq_num) is None:
                             break
                         sending_packet_model = PacketModel(sender_port=sender_port, receiver_port=receiver_port,
@@ -181,7 +196,7 @@ class ReaderThread(Thread):
                         lock.release()
                         continue
                 elif received_packet_model.ack_num == min_seq_num:
-                    print("received dup ack")
+                    # print("received dup ack")
                     dup += 1
                     if dup == 3:
                         timeout = 2 * rtt
@@ -204,17 +219,17 @@ class ReaderThread(Thread):
                             if i == 0:
                                 cwr = 0
             elif cs == ConnectionState.fast_recovery:
-                print("enter in ConnectionState.fast_recovery")
-                if received_packet_model.ack_num >= min_seq_num+1:
+                # print("enter in ConnectionState.fast_recovery")
+                if received_packet_model.ack_num >= min_seq_num + 1:
                     dup = 0
                     cs = ConnectionState.congestion_avoidance
                     pre_min_seq_num = min_seq_num
                     pre_max_seq_num = max_seq_num
 
             if cs == ConnectionState.congestion_avoidance:
-                print("enter in ConnectionState.congestion_avoidance")
+                # print("enter in ConnectionState.congestion_avoidance")
                 if received_packet_model.ack_num >= min_seq_num + 1:
-                    print("ack received")
+                    # print("ack received")
                     dup = 0
                     rtt = math.ceil((1 - 0.125) + 0.125 * (timeout - timer))
                     timer = 2 * rtt
@@ -231,7 +246,7 @@ class ReaderThread(Thread):
                             pre_max_seq_num += 1
                     for i in range(number_of_acked_packets):
                         max_seq_num += 1
-                        print("sending " + max_seq_num)
+                        # print("sending " + str(max_seq_num))
                         if data.get(max_seq_num) is None:
                             break
                         sending_packet_model = PacketModel(sender_port=sender_port, receiver_port=receiver_port,
@@ -242,7 +257,7 @@ class ReaderThread(Thread):
                         f_write.write(packet)
                         f_write.flush()
                 elif received_packet_model.ack_num == min_seq_num:
-                    print("dup ack")
+                    # print("dup ack")
                     dup += 1
                     if dup == 3:
                         timeout = 2 * rtt
@@ -276,7 +291,9 @@ class ReaderThread(Thread):
         os.remove(read_file_path)
         os.remove(time_file_path)
 
-        print("all file successfully removed and closed.")
+        # print("all file successfully removed and closed.")
+
+        print("sending host " + str(sender_port) + ": is terminated...")
 
 
 class TimeThread(Thread):
@@ -288,25 +305,29 @@ class TimeThread(Thread):
             min_seq_num, max_seq_num, ssthresh, rtt, cs, f_write, f_read, f_time, dup, lock
 
         while True:
+            # print("-------------------")
             f_time.readline()
-            print(timeout, timer)
+            # print("tick, timeout: " + str(timeout) + ", timer: " + str(timer))
             lock.acquire()
             if cs == ConnectionState.is_finished:
                 return
             timer -= 1
             if timer == 0:
-                print("time out occurred!")
-                ssthresh /= 2
+                # print("time out occurred!")
+                # print("sending packet " + str(min_seq_num) + " again")
+                if cwnd > 1:
+                    ssthresh = cwnd // 2
                 cwnd = 1
                 max_seq_num = min_seq_num
                 dup = 0
                 cs = ConnectionState.slow_start
-                timer = 2 *rtt
+                timer = 2 * rtt
                 timeout = 2 * rtt
+                m_data = data[min_seq_num] if data.get(min_seq_num) is not None else None
                 sending_packet_model = PacketModel(sender_port=sender_port, receiver_port=receiver_port,
                                                    seq_num=min_seq_num,
                                                    ack_num=0, CWR=1, ACK=0, SYN=0, FIN=0,
-                                                   window_size=1, data=data[min_seq_num])
+                                                   window_size=1, data=m_data)
                 size, packet = sending_packet_model.to_bytes()
                 f_write.write(size)
                 f_write.write(packet)
@@ -325,28 +346,30 @@ file_path = sys.argv[5]
 # max_window = 10
 # file_path = "./file.jpg"
 
-read_file_path = "../pipes/" + "sender_" + str(sender_port) + "_data.pipe"
-time_file_path = "../pipes/" + "sender_" + str(sender_port) + "_time.pipe"
-transmitter_file_path = "../pipes/" + "forwardnet_data.pipe"
+# if not os.path.isfile("./pipes/" + "receiver_" + str(receiver_port) + "_data.pipe"):
+#     print("sending host " + str(sender_port) + ": no receiving host " + str(receiver_port) + " is available.")
+#     exit(-1)
+
+read_file_path = "./pipes/" + "sender_" + str(sender_port) + "_data.pipe"
+time_file_path = "./pipes/" + "sender_" + str(sender_port) + "_time.pipe"
+transmitter_file_path = "./pipes/" + "forwardnet_data.pipe"
 
 # creaing & opening files
 os.mkfifo(read_file_path)
 os.mkfifo(time_file_path)
 
 f_time = open(time_file_path, 'rb')
-print("passed")
+# print("passed")
 f_write = open(transmitter_file_path, 'wb')
-print("passed")
+# print("passed")
 f_read = open(read_file_path, 'rb')
-print("passed")
+# print("passed")
 f_file = open(file_path, 'rb')
-
-print("AA")
 
 data_array = f_file.read()
 f_file.close()
 
-cwnd = 0
+cwnd = 1
 rtt = init_rtt
 timer = 0
 timeout = 0
@@ -357,8 +380,6 @@ first_data_packet_seq_num = min_seq_num + 2
 ssthresh = -1
 dup = 0
 
-print(data_array)
-
 tmp = min_seq_num + 2
 data = {}
 for i in range(0, len(data_array), 1480):
@@ -368,10 +389,8 @@ for i in range(0, len(data_array), 1480):
     else:
         data[tmp] = data_array[i:]
 
-# print(data)
+# #print(data)
 lock = Lock()
-
-print(len(data))
 
 ReaderThread().start()
 TimeThread().start()
