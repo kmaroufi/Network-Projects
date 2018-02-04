@@ -388,12 +388,13 @@ class Packet:
         try:
             decrypted_body = blob_rsa_dec(body_bytes, first_privk)
         except DecryptionError:
-            print("decrypting body: first try failed")
+            # print("decrypting body: first try failed")
             if second_privk is not None:
                 try:
                     decrypted_body = blob_rsa_dec(body_bytes, second_privk)
                 except DecryptionError:
-                    print("decrypting body: second try failed also")
+                    # print("decrypting body: second try failed also")
+                    pass
 
         # print(decrypted_body)
 

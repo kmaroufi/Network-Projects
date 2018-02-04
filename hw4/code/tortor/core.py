@@ -92,7 +92,7 @@ class Relay(Node):
         """
 
 
-        print("---")
+        # print("---")
         # parse packet
         packet = Packet.from_bytes(payload, self.privkey) if not self.hidden_keypair \
             else Packet.from_bytes(payload, self.privkey, self.hidden_keypair[1])
@@ -105,7 +105,7 @@ class Relay(Node):
         if next_hop_ip == b"0.0.0.0":
             self.receive_packet(packet)
         else:
-            print("middle node: received packet")
+            # print("middle node: received packet")
             self.relay_packet(packet, next_hop_ip)
 
     def relay_packet(self, packet, next_hop_ip):
@@ -142,24 +142,25 @@ class Relay(Node):
         """
         # TODO this is filled by the student
         if isinstance(packet.body, RegisterPacketBody):
-            print("public server: received register")
+            # print("public server: received register")
             if self.verify(packet.body.challenge, bytes_to_key(packet.body.src_pk)) or True:
                 self.register[packet.body.src_pk] = packet.body.return_hops  # TODO aya returning hop be tartibe dorost ast?
             else:
-                print("challenge has not been have had verified.")
+                # print("challenge has not been have had verified.")
+                pass
             # TODO challenge?
         elif isinstance(packet.body, DataPacketBody):
             if bytes_to_key(packet.body.dest_pk) == self.pubkey:
                 # we are public receiver
-                print("public server: received packet")
+                # print("public server: received packet")
                 self.on_data(bytes_to_key(packet.body.src_pk), packet.body.data)
             elif self.hidden_keypair is not None and bytes_to_key(packet.body.dest_pk) == self.hidden_keypair[0]:
                 # we are hidden receiver
-                print("hidden server: received packet")
+                # print("hidden server: received packet")
                 self.on_data(bytes_to_key(packet.body.src_pk), packet.body.data, True)
             else:
                 # we are HH
-                print("HH: received packet")
+                # print("HH: received packet")
                 packet.header.hops = self.register[packet.body.dest_pk]  # TODO should we update src_pk?
                 next_hop_ip = decrypt(packet.header.hops[0], self.privkey)
                 # self.relay_packet(packet, next_hop_ip)
@@ -260,7 +261,7 @@ class Relay(Node):
             raise Exception("long path: number of nodes are higher than 6")
             # return None
 
-        print("final path", path)
+        # print("final path", path)
 
         # print("----")
         # visited = {}
