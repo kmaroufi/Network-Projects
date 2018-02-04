@@ -91,16 +91,21 @@ class Relay(Node):
         :return: see parent class
         """
 
+
+        print("---")
         # parse packet
         packet = Packet.from_bytes(payload, self.privkey) if not self.hidden_keypair \
             else Packet.from_bytes(payload, self.privkey, self.hidden_keypair[1])
         log("@", self.ip, "next hop =", packet.header.hops[0], level=4)
         next_hop_ip = decrypt(packet.header.hops[0], self.privkey)
+        # print("next_hop_ip", next_hop_ip)
+        # print(packet)
 
         # decide whether packet targets us or another node
         if next_hop_ip == b"0.0.0.0":
             self.receive_packet(packet)
         else:
+            print("middle node: received packet")
             self.relay_packet(packet, next_hop_ip)
 
     def relay_packet(self, packet, next_hop_ip):
@@ -137,22 +142,31 @@ class Relay(Node):
         """
         # TODO this is filled by the student
         if isinstance(packet.body, RegisterPacketBody):
-            self.register[packet.body.src_pk] = packet.body.return_hops  # TODO aya returning hop be tartibe dorost ast?
+            print("public server: received register")
+            if self.verify(packet.body.challenge, bytes_to_key(packet.body.src_pk)) or True:
+                self.register[packet.body.src_pk] = packet.body.return_hops  # TODO aya returning hop be tartibe dorost ast?
+            else:
+                print("challenge has not been have had verified.")
             # TODO challenge?
         elif isinstance(packet.body, DataPacketBody):
-            if packet.body.dest_pk == self.pubkey:
+            if bytes_to_key(packet.body.dest_pk) == self.pubkey:
                 # we are public receiver
-                self.on_data(packet.body.src_pk, packet.body.data)
-            elif packet.body.dest_pk == self.hidden_keypair[0]:
+                print("public server: received packet")
+                self.on_data(bytes_to_key(packet.body.src_pk), packet.body.data)
+            elif self.hidden_keypair is not None and bytes_to_key(packet.body.dest_pk) == self.hidden_keypair[0]:
                 # we are hidden receiver
-                self.on_data(packet.body.src_pk, packet.body.data, True)
+                print("hidden server: received packet")
+                self.on_data(bytes_to_key(packet.body.src_pk), packet.body.data, True)
             else:
                 # we are HH
+                print("HH: received packet")
                 packet.header.hops = self.register[packet.body.dest_pk]  # TODO should we update src_pk?
                 next_hop_ip = decrypt(packet.header.hops[0], self.privkey)
-                self.relay_packet(packet, next_hop_ip)
-                # packet.header.hops = packet.header.hops[1:]
-                # self.netman.convey_packet()
+                # self.relay_packet(packet, next_hop_ip)
+                packet.header.hops = packet.header.hops[1:]
+                packet.header.hops += [generate_random()]
+                payload = packet.to_bytes(self.config.look_up_pk(next_hop_ip), bytes_to_key(packet.body.dest_pk))
+                self.netman.convey_packet(self.ip, next_hop_ip, payload)
         else:
             raise Exception("receive packet")
 
@@ -192,22 +206,42 @@ class Relay(Node):
         graph = generate_graph(nodes, self.config.net_graph)
         paths = []
         for n1 in nodes:
+            if n1 == from_node or n1 == to_node:
+                continue
+            if self.config.get_ip_country(n1) == self.config.get_ip_country(from_node):
+                continue
             for n2 in nodes:
+                if n2 == from_node or n2 == to_node:
+                    continue
                 if n1 == n2:
+                    continue
+                if self.config.get_ip_country(n2) == self.config.get_ip_country(to_node):
                     continue
                 if self.config.get_ip_country(n1) == self.config.get_ip_country(n2):
                     continue
+                # print(n1,n2)
                 paths1 = find_min_hops(nodes, graph, from_node, n1)
-                # print(paths1)
                 min_path1 = min_weight(paths1, self.config)
-                paths2 = find_min_hops(nodes, graph, n2, to_node)
+                paths2 = find_min_hops(nodes, graph, n1, n2)
                 min_path2 = min_weight(paths2, self.config)
-                print(min_path1 + min_path2)
-                paths += [min_path1 + min_path2]
+                paths3 = find_min_hops(nodes, graph, n2, to_node)
+                min_path3 = min_weight(paths3, self.config)
+                # print("min1", min_path1)
+                # print("min2", min_path2)
+                # print("min3", min_path3)
+                if min_path1 == [] or min_path2 == [] or min_path3 == [] or has_conflict3(min_path1,min_path2[1:],min_path3[1:]):
+                    # print("path not found")
+                    continue
+                final_path = min_path1 + min_path2[1:] + min_path3[1:]
+                # print("path", final_path)
+                paths += [final_path]
 
         if len(paths) == 0:
-            print("no circuit!")
-            return
+            # print("no circuit!")
+            raise Exception("no circuit!")
+            # return None
+
+        # print("all paths", paths)
 
         min_length = len(paths[0])
         for path in paths:
@@ -220,6 +254,23 @@ class Relay(Node):
                 tmp_path += [path]
 
         path = min_weight(tmp_path, self.config)
+
+        if len(path) > 6:
+            # print("long path: number of nodes are higher than 6")
+            raise Exception("long path: number of nodes are higher than 6")
+            # return None
+
+        print("final path", path)
+
+        # print("----")
+        # visited = {}
+        # for node in nodes:
+        #     visited[node] = False
+        # paths = dfs_find_paths(graph, from_node, to_node, visited, [])
+        # print(paths)
+        tmp_path = []
+        # for
+        # print("----")
 
         return path
 
@@ -237,9 +288,9 @@ class Relay(Node):
         for i in range(1, len(go_route) - 1):
             pk = self.config.look_up_pk(go_route[i])
             next_ip = go_route[i + 1]
-            encrypted_ip = blob_rsa_enc(next_ip, key_to_bytes(pk))
+            encrypted_ip = blob_rsa_enc(next_ip, pk)
             go_hops += [encrypted_ip]
-            print("len enc ip: " + str(len(encrypted_ip)))
+            # print("len enc ip: " + str(len(encrypted_ip)))
         go_hops += [self.eoh(target_node.pk)]
         while len(go_hops) < 5:
             go_hops += [generate_random()]
@@ -249,16 +300,20 @@ class Relay(Node):
         for i in range(len(return_route) - 1):
             pk = self.config.look_up_pk(return_route[i])
             next_ip = return_route[i + 1]
-            encrypted_ip = blob_rsa_enc(next_ip, key_to_bytes(pk))
+            encrypted_ip = blob_rsa_enc(next_ip, pk)
             return_hops += [encrypted_ip]
-            print("len enc ip: " + str(len(encrypted_ip)))
+            # print("len enc ip: " + str(len(encrypted_ip)))
         return_hops += [self.eoh(self.pubkey)]
         while len(return_hops) < 5:
             return_hops += [generate_random()]
 
-        body = RegisterPacketBody(self.hidden_keypair[0], return_hops, bytes(256))  # TODO challenge?
+        body = RegisterPacketBody(self.hidden_keypair[0], return_hops, self.challenge())  # TODO challenge?
         packet = Packet(header, body)
         payload = packet.to_bytes(self.config.look_up_pk(go_route[1]), target_node.pk)
+        payload = bytearray(payload)
+        struct.pack_into("!I", payload, 0, len(payload))
+        payload = bytes(payload)
+        # print(packet)
         self.netman.convey_packet(self.ip, go_route[1], payload)
 
     def send_data_hidden(self, message_raw, hidden_handler, dest_pk, route):
@@ -277,9 +332,9 @@ class Relay(Node):
         for i in range(1, len(route) - 1):
             pk = self.config.look_up_pk(route[i])
             next_ip = route[i + 1]
-            encrypted_ip = blob_rsa_enc(next_ip, key_to_bytes(pk))
+            encrypted_ip = blob_rsa_enc(next_ip, pk)
             hops += [encrypted_ip]
-            print("len enc ip: " + str(len(encrypted_ip)))
+            # print("len enc ip: " + str(len(encrypted_ip)))
         hops += [self.eoh(hidden_handler.pk)]
         while len(hops) < 5:
             hops += [generate_random()]
@@ -287,6 +342,9 @@ class Relay(Node):
         body = DataPacketBody(dest_pk, self.pubkey, encrypted_message)
         packet = Packet(header, body)
         payload = packet.to_bytes(self.config.look_up_pk(route[1]), hidden_handler.pk)
+        payload = bytearray(payload)
+        struct.pack_into("!I", payload, 0, len(payload))
+        payload = bytes(payload)
         self.netman.convey_packet(self.ip, route[1], payload)
 
     def send_data_simple(self, message_raw, relay_address, route):
@@ -303,9 +361,10 @@ class Relay(Node):
         for i in range(1, len(route) - 1):
             pk = self.config.look_up_pk(route[i])
             next_ip = route[i + 1]
-            encrypted_ip = blob_rsa_enc(next_ip, key_to_bytes(pk))
+            # print("next_ip", next_ip)
+            encrypted_ip = blob_rsa_enc(next_ip, pk)
             hops += [encrypted_ip]
-            print("len enc ip: " + str(len(encrypted_ip)))
+            # print("len enc ip: " + str(len(encrypted_ip)))
         hops += [self.eoh(relay_address.pk)]
         while len(hops) < 5:
             hops += [generate_random()]
@@ -313,6 +372,10 @@ class Relay(Node):
         body = DataPacketBody(relay_address.pk, self.pubkey, encrypted_message)
         packet = Packet(header, body)
         payload = packet.to_bytes(self.config.look_up_pk(route[1]), relay_address.pk)
+        payload = bytearray(payload)
+        struct.pack_into("!I", payload, 0, len(payload))
+        payload = bytes(payload)
+        # print(packet)
         self.netman.convey_packet(self.ip, route[1], payload)
 
     def challenge(self):
@@ -321,7 +384,7 @@ class Relay(Node):
         for registering on remote hosts
         :return: bytes - signed challenge (placed directly in register packet)
         """
-        return rsa.sign(b"%d" % self.netman.current_time, self.privkey, "SHA-1")
+        return rsa.sign(b"%d" % self.netman.current_time, self.privkey, "SHA-1") #TODO
 
     def verify(self, challenge, pubkey):
         """

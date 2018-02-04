@@ -4,6 +4,7 @@ import rsa
 import inspect
 from rsa import PublicKey, PrivateKey
 import queue
+import os
 
 LOG_LEVEL = 4
 PKEY_SERIALIZED_SIZE = 256
@@ -76,11 +77,12 @@ def log(*args, **kwargs):
 
 
 def generate_random():
-    res = bytearray(256)
-    res[0] = 1
-    for i in range(1, PKEY_SERIALIZED_SIZE):
-        res[i] = randint(0, 1)
-    return bytes(res)
+    # res = bytearray(256)
+    # res[0] = 1
+    # for i in range(1, PKEY_SERIALIZED_SIZE):
+    #     res[i] = randint(0, 1)
+    # return bytes(res)
+    return b"".join([b"1", os.urandom(255)])
 
 
 def generate_graph(nodes, edges):
@@ -106,10 +108,13 @@ def find_min_hops(nodes, graph, s, t):
                 visited[adj_node] = (visited[node][0] + 1, [node])
                 boundery.put(adj_node)
             elif visited[adj_node][0] == visited[node][0] + 1:
-                visited[adj_node][1] += [node]
+                visited[adj_node] = (visited[adj_node][0], visited[adj_node][1] + [node])
 
+    # print("find min hops", s, t)
     # print(visited)
-    return calc(visited, s, t, [])
+    if visited[t][0] == -1:
+        return []
+    return calc(visited, s, t, [t])
 
 
 def calc(visited, s, t, path):
@@ -122,6 +127,8 @@ def calc(visited, s, t, path):
 
 
 def min_weight(paths, config):
+    if len(paths) == 0:
+        return []
     min_path = paths[0]
     weight = calc_path_weight(paths[0], config)
     for path in paths:
@@ -137,6 +144,37 @@ def calc_path_weight(path, config):
         weight += config.latency(path[i], path[i+1])
     return weight
 
+
+def has_conflict3(p1, p2, p3):
+    return has_conflict2(p1, p2) or has_conflict2(p1, p3) or has_conflict2(p2, p3)
+
+
+def has_conflict2(p1, p2):
+    for n1 in p1:
+        for n2 in p2:
+            if n1 == n2:
+                return True
+    return False
+
+
+def dfs_find_paths(graph, c_node, t, visited, path):
+    visited[c_node] = True
+    path += [c_node]
+
+    if c_node == t:
+        print(c_node, t)
+        return [path]
+
+    paths = []
+    for n1 in graph[c_node]:
+        if visited[n1] is False:
+            d = dfs_find_paths(graph, n1, t, visited, path)
+            paths += d
+            print(paths)
+
+    path.pop()
+    visited[c_node] = False
+    return paths
 
 if __name__ == "__main__":
     a, b = rsa.newkeys(2048)

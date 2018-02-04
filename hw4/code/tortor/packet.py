@@ -64,7 +64,7 @@ class Header:
         hops_bytes = b"".join(self.hops)
         if dest_pub_key is not None:
             hops_bytes = blob_rsa_enc(hops_bytes, dest_pub_key)
-        return length_bytes + hops_bytes
+        return b"".join([length_bytes, hops_bytes])
 
     def __str__(self):
         return "length: " + str(self.length) + " - " + "hops: " + str(self.hops)
@@ -110,7 +110,6 @@ class PacketBody:
         :return:
         """
         return b""
-
 
 
 class DataPacketBody(PacketBody):
@@ -218,7 +217,8 @@ class DataPacketBody(PacketBody):
         return b"".join([self.dest_pk, self.src_pk, self.data])
 
     def __str__(self):
-        return "dest_pk: " + self.dest_pk + " - " + "src_pk: " + self.src_pk + " - " + "data: " + self.data
+        return "dest_pk: " + str(self.dest_pk) + " - " + "src_pk: " + str(self.src_pk) + " - " + "data: " + str(
+            self.data)
 
 
 class RegisterPacketBody(PacketBody):
@@ -292,7 +292,7 @@ class RegisterPacketBody(PacketBody):
         return self.src_pk + b"".join(self.return_hops) + self.challenge
 
     def __str__(self):
-        return "src_pk: " + self.src_pk + " - " + "returning hops: " + self.return_hops + " - " + "challenge: " + self.challenge
+        return "src_pk: " + str(self.src_pk) + " - " + "returning hops: " + str(self.return_hops) + " - " + "challenge: " + str(self.challenge)
 
 
 class RawPacketBody(PacketBody):
@@ -372,8 +372,8 @@ class Packet:
         if len(private_keys) > 1:
             second_privk = private_keys[1]
 
-        header_bytes = mbytes[:4 + URL_SIZE * MAX_HOPS]
-        body_bytes = mbytes[4 + URL_SIZE * MAX_HOPS:]
+        header_bytes = mbytes[:Header.SIZE]
+        body_bytes = mbytes[Header.SIZE:]
 
         h = None
         b = None
@@ -388,20 +388,20 @@ class Packet:
         try:
             decrypted_body = blob_rsa_dec(body_bytes, first_privk)
         except DecryptionError:
-            print("first try failed")
+            print("decrypting body: first try failed")
             if second_privk is not None:
                 try:
                     decrypted_body = blob_rsa_dec(body_bytes, second_privk)
                 except DecryptionError:
-                    print("second try failed also")
+                    print("decrypting body: second try failed also")
 
-        print(decrypted_body)
+        # print(decrypted_body)
 
         if decrypted_body is None:
             b = RawPacketBody.from_bytes(body_bytes)
         else:
-            flag = unpack_from("!B", decrypted_body, 0)
-            if flag == 0:  # TODO??
+            flag = unpack_from("!B", decrypted_body, 0)[0]
+            if flag == 0:
                 b = DataPacketBody.from_bytes(decrypted_body[1:])
             else:
                 b = RegisterPacketBody.from_bytes(decrypted_body[1:])
@@ -418,18 +418,16 @@ class Packet:
         header_bytes = self.header.to_bytes(next_hop_pk)
         body_bytes = self.body.to_bytes()
 
-        if not isinstance(self.body, RawPacketBody):
-            body_bytes = blob_rsa_enc(body_bytes, dest_pk)
-
-        flag = None
         flag_byte = bytearray(1)
         if isinstance(self.body, DataPacketBody):
-            flag = 0
+            pack_into('!B', flag_byte, 0, 0)
         elif isinstance(self.body, RegisterPacketBody):
-            flag = 1
-        pack_into('!B', flag_byte, 0, flag)
+            pack_into('!B', flag_byte, 0, 1)
 
-        return header_bytes + body_bytes if flag is None else header_bytes + flag_byte + body_bytes
+        if not isinstance(self.body, RawPacketBody):
+            body_bytes = blob_rsa_enc(flag_byte + body_bytes, dest_pk)
+
+        return header_bytes + body_bytes
 
     def __str__(self):
         return "header: " + str(self.header) + "\n" + "body: " + str(self.body)

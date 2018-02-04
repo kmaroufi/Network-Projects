@@ -18,7 +18,7 @@ def blob_rsa_enc(mbytes, pubkey):
     :param pubkey: rsa.PublicKey - encryption pubkey
     :return: cipher-text
     """
-    print("blob_rsa_enc: " + str(mbytes))
+    # print("blob_rsa_enc: " + str(mbytes))
     return b"".join([rsa.encrypt(mbytes[i * CRYPT_EFFECTIVE_SIZE:(i + 1) * CRYPT_EFFECTIVE_SIZE], pub_key=pubkey)
                      for i in range(int(ceil(len(mbytes) / CRYPT_EFFECTIVE_SIZE)))])
 
@@ -31,7 +31,7 @@ def blob_rsa_dec(mbytes, privkey):
     :param privkey: rsa.PrivateKey - privkey needed for decryption
     :return: bytes - plain-text
     """
-    print("blob_rsa_dec: " + str(mbytes))
+    # print("blob_rsa_dec: " + str(mbytes))
     return b"".join([rsa.decrypt(mbytes[i * CRYPT_SIZE:(i + 1) * CRYPT_SIZE], priv_key=privkey)
                      for i in range(int(ceil(len(mbytes) / CRYPT_SIZE)))])  # TODO remove ceil
 

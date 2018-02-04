@@ -13,17 +13,18 @@ def __test4__():
     Test build-circuit
     """
 
-    key_pairs = KEY_PAIRS[:4]
-    ips = [b"192.168.1.1", b"192.168.2.2", b"192.168.3.1", b"192.168.4.2"]
+    key_pairs = KEY_PAIRS[:6]
+    ips = [b"192.168.1.1", b"192.168.2.2", b"192.168.3.1", b"192.168.4.2", b"192.168.5.2", b"192.168.6.2"]
 
-    addresses = [RelayAddress(ips[i], key_pairs[i][0]) for i in range(4)]
-    net_graph = {(ips[0], ips[1], 1), (ips[1], ips[2], 1), (ips[2], ips[3], 1), (ips[0], ips[3], 1)}
+    addresses = [RelayAddress(ips[i], key_pairs[i][0]) for i in range(6)]
+    net_graph = {(ips[0], ips[1], 1), (ips[1], ips[2], 1000), (ips[2], ips[3], 1), (ips[0], ips[3], 1),
+                 (ips[0], ips[4], 1), (ips[4], ips[5], 1), (ips[5], ips[2], 1)}
 
     config = RelayConfig(relay_list=addresses, net_graph=net_graph)
 
-    relays = [Relay(ips[i], key_pairs[i][0], key_pairs[i][1], config) for i in range(4)]
+    relays = [Relay(ips[i], key_pairs[i][0], key_pairs[i][1], config) for i in range(6)]
 
-    print(relays[0].build_circuit(ips[0], ips[1]))
+    print(relays[0].build_circuit(ips[0], ips[3]))
 
 
 def __test5__():
@@ -32,7 +33,7 @@ def __test5__():
     """
 
     key_pairs = KEY_PAIRS[:7]
-    ips = [b"192.168.1.%d" % (i,) for i in range(len(key_pairs))]
+    ips = [b"192.168.%d.%d" % (i,i,) for i in range(len(key_pairs))]
 
     addresses = [RelayAddress(ips[i], key_pairs[i][0]) for i in range(len(key_pairs))]
     net_graph = set([(ips[i], ips[i+1], 1) for i in range(len(key_pairs) - 1)])
@@ -90,8 +91,8 @@ def __test6__():
 
 
 if __name__ == "__main__":
-    # __test3__()
-    __test4__()
-    # __test5__()
+    # __test6__()
+    # __test4__()
+    __test5__()
 
 
