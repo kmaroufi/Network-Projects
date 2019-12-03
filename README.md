@@ -1,21 +1,6 @@
-# تمرین های درس شبکه
-```cpp
-/*
-    _______________________________________
-   / Please do not modify the repository's \
-   | root folder, as it's going to be      |
-   | updated automatically with more       |
-   \ assignments. You have been warned.    /
-    ---------------------------------------
-           \   ^__^
-            \  (oo)\_______
-               (__)\       )\/\
-                   ||----w |
-                   ||     ||
-   
-*/
-```
-
-موفق باشید :)
-
-
+# Network Projects
+* hw0: Implementing chat communicating with socket programming written in C.
+* hw1: Implementing DNS server written in Python.
+* hw2: Implementing TCP protocol in the application layer written in Python.
+* hw3: Generating network adjacent matrix based on OSPF protocol from network packets written in Python.
+* hw4: Implementing simplified Tor network written in Python.
